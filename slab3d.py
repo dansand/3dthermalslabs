@@ -17,7 +17,7 @@
 # 
 # 
 
-# In[55]:
+# In[2]:
 
 import numpy as np
 import underworld as uw
@@ -909,19 +909,20 @@ MG.remove_edges_from([(mantleID,crustID)])
 
 #mantle  => crust
 MG.add_transition((mantleID,crustID), depthFn, operator.lt, ndp.mantleCrustDepth)
-MG.add_transition((mantleID,crustID), morRestrictFn, operator.gt, 0.5)
+MG.add_transition((mantleID,crustID), yFn, operator.gt, 2.*w0) 
+MG.add_transition((mantleID,crustID), yFn, operator.lt, ndp.subZoneLoc/2.)   
 MG.add_transition((mantleID,crustID), xFn, operator.lt, (mesh.minCoord[0] - ndp.subZoneLoc)/2.)
 
 MG.build_condition_list(materialVariable)
 
 
-# In[62]:
+# In[1]:
 
-fig3= glucifer.Figure(quality=3)
-fig3.append( glucifer.objects.Points(swarm,materialVariable, pointSize=2))
+fig3= glucifer.Figure(quality=3, boundingBox=bBox)
+fig3.append( glucifer.objects.Points(swarm,materialVariable, pointSize=2, fn_mask=vizVariable))
 #fig1.append( glucifer.objects.Points(metricSwarm.swarm, pointSize=1))
 #fig3.show()
-#fig3.save_database('test.gldb')
+fig3.save_database('mat.gldb')
 
 
 # ## choose temp field to use
