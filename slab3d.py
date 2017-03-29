@@ -1155,7 +1155,23 @@ stokes = uw.systems.Stokes( velocityField  = velocityField,
 
 # Create solver & solve
 solver = uw.systems.Solver(stokes)
+
+
+# In[ ]:
+
+solver.options.main.Q22_pc_type='gkgdiag'
+solver.options.scr.use_previous_guess = True
+solver.options.mg.levels = 3
+solver.options.A11.ksp_rtol=1e-4
+solver.options.scr.ksp_rtol=1e-4
+#solver.set_penalty(1.0)
+
+
+# In[ ]:
+
+
 solver.solve(nonLinearIterate=True)
+
 #solver.print_stats()
 
 
