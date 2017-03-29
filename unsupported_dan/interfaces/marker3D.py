@@ -18,6 +18,7 @@ class markerSurface3D(object):
         # then set this flag and return appropriately. This can be checked once the swarm is
         # populated.
 
+
         self.empty = False
 
         # Should do some checking first
@@ -136,9 +137,20 @@ class markerSurface3D(object):
         fpts = np.where( np.isinf(d) == False )[0]
         director = np.zeros_like(coords)
 
-        dims = self.swarm.particleCoordinates.data.shape[1]
-        fdirector = np.append(self.director.data,
-                              self.director.data_shadow).reshape(-1,dims)
+        #dims = self.swarm.particleCoordinates.data.shape[1]
+        #fdirector = np.append(self.director.data,
+        #                      self.director.data_shadow).reshape(-1,dims)
+
+        if uw.nProcs() == 1 or self.director.data_shadow.shape[0] == 0:
+            fdirector = self.director.data
+            #print('1')
+        elif self.director.data.shape[0] == 0:
+            fdirector = self.director.data_shadow
+            #print('2')
+        else:
+            fdirector = np.concatenate((self.director.data,
+                                    self.director.data_shadow))
+            #print('3')
 
         director[fpts] = fdirector[p[fpts]]
 
@@ -159,10 +171,16 @@ class markerSurface3D(object):
         if self.empty:
             return np.empty((0,1)), np.empty(0, dtype="int")
 
-        self.swarm.shadow_particles_fetch()
-        dims = self.swarm.particleCoordinates.data.shape[1]
-        fdirector = np.append(self.director.data,
-                              self.director.data_shadow).reshape(-1,dims)
+        if uw.nProcs() == 1 or self.director.data_shadow.shape[0] == 0:
+            fdirector = self.director.data
+            print('1')
+        elif self.director.data.shape[0] == 0:
+            fdirector = self.director.data_shadow
+            print('2')
+        else:
+            fdirector = np.concatenate((self.director.data,
+                                    self.director.data_shadow))
+            print('3')
 
         d, p  = self.kdtree.query( coords, distance_upper_bound=distance )
 
@@ -241,5 +259,7 @@ class markerSurface3D(object):
             self.director.data[:,0] = Nx[:]
             self.director.data[:,1] = Ny[:]
             self.director.data[:,2] = Nz[:]
+
+        print("Surf Norms")
 
         return

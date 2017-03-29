@@ -79,6 +79,8 @@ class markerLine2D(object):
         else:
             self.kdtree = kdTree(all_particle_coords)
 
+        print("KDTree")
+
         return
 
 
@@ -262,5 +264,7 @@ class markerLine2D(object):
 
             self.director.data[:,0] = Nx[:]
             self.director.data[:,1] = Ny[:]
+
+        print("Surf Norms")
 
         return
