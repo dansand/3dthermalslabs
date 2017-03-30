@@ -17,4 +17,4 @@ export PYTHONPATH=$PYTHONPATH:/group/m18/dsandiford/underworld2
 
 cd ..
 
-aprun -n 16 python slab3d.py T 1
+aprun -n 24 python slab3d.py T 1

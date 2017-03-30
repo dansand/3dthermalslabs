@@ -17,7 +17,7 @@
 # 
 # 
 
-# In[66]:
+# In[52]:
 
 import numpy as np
 import underworld as uw
@@ -46,7 +46,7 @@ from unsupported_dan.alchemy.materialGraph import MatGraph
 
 # ## Setup output directories
 
-# In[67]:
+# In[53]:
 
 ############
 #Model letter and number
@@ -74,7 +74,7 @@ else:
                 Model  = farg
 
 
-# In[68]:
+# In[54]:
 
 ###########
 #Standard output directory setup
@@ -108,12 +108,12 @@ uw.barrier() #Barrier here so no procs run the check in the next cell too early
 
 # ## Model parameters and scaling
 
-# In[69]:
+# In[55]:
 
 #1./1.87e9, 1./2.36e14
 
 
-# In[70]:
+# In[56]:
 
 dp = edict({})
 #Main physical paramters
@@ -155,13 +155,13 @@ dp.viscosityMinCrust=1e18               #viscosity min in the weak-crust materia
 dp.viscosityMaxCrust=1e20               #viscosity max in the weak-crust material
 dp.yieldStressMax=300*1e6              #
 #Intrinsic Lengths
-dp.mantleCrustDepth=15.*1e3              #Crust depth
-dp.faultThickness = 20.*1e3              #interface material (crust) an top of slabs
+dp.mantleCrustDepth=20.*1e3              #Crust depth
+dp.faultThickness = 25.*1e3              #interface material (crust) an top of slabs
 dp.crustMantleDepth=250.*1e3 
 dp.lowerMantleDepth=660.*1e3  
 dp.crustLimitDepth=250.*1e3             #Deeper than this, crust material rheology reverts to mantle rheology
 #Slab and plate init. parameters
-dp.subZoneLoc=6000e3                    #Y position of subduction zone...km
+dp.subZoneLoc=3000e3                    #Y position of subduction zone...km
 dp.maxDepth=250e3
 dp.theta=40                             #Angle of slab
 dp.slabMaxAge=100e6                     #age of subduction plate at trench
@@ -181,12 +181,12 @@ dp.tempGradSlab = (dp.refExpansivity*dp.refGravity*(dp.surfaceTemp + 400.))/dp.s
 #Modelling and Physics switches
 
 md = edict({})
-md.aspectX = 4.
-md.aspectY = 8.
+md.aspectX = 0.25
+md.aspectY = 4.
 md.refineMeshStatic=False
 md.stickyAir=False
 md.aspectRatio=5.
-md.res=48
+md.res=32
 md.ppc=25                                 #particles per cell
 md.elementType="Q1/dQ0"
 #md.elementType="Q2/DPC1"
@@ -194,7 +194,7 @@ md.secInvFac=math.sqrt(1.)
 md.courantFac=0.5                         #extra limitation on timestepping
 md.thermal = False                        #thermal system or compositional
 md.swarmInitialFac = 0.6                 #initial swarm layout will be int(md.ppc*md.swarmInitialFac), popControl will densify later
-md.compBuoyancy = True
+md.compBuoyancy = False
 
 
 # In[ ]:
@@ -202,7 +202,7 @@ md.compBuoyancy = True
 
 
 
-# In[71]:
+# In[57]:
 
 sf = edict({})
 
@@ -275,7 +275,7 @@ ndp.maxDepth = dp.maxDepth/sf.lengthScale
 
 
 
-# In[72]:
+# In[58]:
 
 #Domain and Mesh paramters
 zres = int(md.res)
@@ -307,13 +307,13 @@ if md.thermal:
 # ## miscellaneous Python functions 
 # 
 
-# In[73]:
+# In[59]:
 
 def bbox(mesh):
     return ((mesh.minCoord[0], mesh.minCoord[1], mesh.minCoord[2]),(mesh.maxCoord[0], mesh.maxCoord[1], mesh.minCoord[2]))
 
 
-# In[74]:
+# In[60]:
 
 ## general underworld2 functions 
 
@@ -341,14 +341,14 @@ def inCircleFnGenerator(centre, radius):
 
 
 
-# In[75]:
+# In[61]:
 
 mesh.minCoord, mesh.maxCoord
 
 
 # ## 1. Static Mesh refinement
 
-# In[76]:
+# In[62]:
 
 if md.refineMeshStatic:
     mesh.reset()
@@ -391,7 +391,7 @@ if md.refineMeshStatic:
          mesh.data[:,1] = newYpos[:,0]
 
 
-# In[77]:
+# In[63]:
 
 #fig= glucifer.Figure(quality=3)
 
@@ -409,7 +409,7 @@ if md.refineMeshStatic:
 
 # ## Boundary Conditions
 
-# In[78]:
+# In[64]:
 
 #Stokes BCs
 
@@ -425,7 +425,7 @@ freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField,
                                                indexSetsPerDof = ( iWalls, jWalls, kWalls) )
 
 
-# In[79]:
+# In[65]:
 
 #Energy BCs
 
@@ -436,7 +436,7 @@ if md.thermal:
 
 # ## Swarm
 
-# In[80]:
+# In[66]:
 
 #create material swarm
 swarm = uw.swarm.Swarm(mesh=mesh, particleEscape=True)
@@ -458,7 +458,7 @@ proxyTempVariable.data[:] = 0.0
 
 # ## Materials
 
-# In[81]:
+# In[67]:
 
 #Materials
 mantleID = 0
@@ -480,7 +480,7 @@ material_list = [mantleID, crustID, airID]
 
 # ## Initial Conditions
 
-# In[82]:
+# In[68]:
 
 proxyageFn = fn.branching.conditional([(yFn < ndp.subZoneLoc, ndp.slabMaxAge*fn.math.abs(yFn)), #idea is to make this arbitrarily complex
                                   (True, ndp.opMaxAge)])
@@ -493,7 +493,7 @@ w0 = 2.3*math.sqrt(1.*ndp.slabMaxAge)
 
 # ### Marker Surface for slab
 
-# In[83]:
+# In[69]:
 
 #create coordinates for markrSurface
 SPACING = 5e3/sf.lengthScale #points at .. km intervals
@@ -510,7 +510,7 @@ ys = coords[1].flatten()
 zs = 1.- (ys - ndp.subZoneLoc)*dydx
 
 
-# In[84]:
+# In[70]:
 
 #create the makerSurface
 
@@ -518,7 +518,7 @@ slabTop = markerSurface3D(mesh, velocityField, xs, ys,zs, 1.5*w0, 1.)
 
 
 
-# In[85]:
+# In[71]:
 
 #Assign the signed distance for the slab
 #in this case we only want the portion where the signed distance is positive
@@ -540,7 +540,7 @@ signedDistanceVariable.data[np.logical_and(sd>0, sd<=slabTop.thickness)] = sd[np
 
 
 
-# In[86]:
+# In[72]:
 
 slabCirc = inCircleFnGenerator((ndp.subZoneLoc, 1.0), ndp.maxDepth)
 
@@ -572,25 +572,25 @@ proxyTempVariable.data[:] = proxytempConds.evaluate(swarm)
 
 
 
-# In[87]:
+# In[73]:
 
 #proxyTempVariable.data.max()
 
 
-# In[88]:
+# In[74]:
 
 print('test Point')
 
 
 # ## Mask variable for viz
 
-# In[89]:
+# In[75]:
 
 bBox = bbox(mesh)
 bBox
 
 
-# In[90]:
+# In[76]:
 
 vizVariable      = swarm.add_variable( dataType="int", count=1 )
 
@@ -601,12 +601,12 @@ vizConds = fn.branching.conditional([(proxyTempVariable < 0.9*1., 1),
 vizVariable.data[:] = vizConds.evaluate(swarm)
 
 
-# In[91]:
+# In[77]:
 
 #fn_mask=vizVariable
 
 
-# In[92]:
+# In[78]:
 
 swarmfig = glucifer.Figure(figsize=(800,400), boundingBox=bBox)
 swarmfig.append( glucifer.objects.Points(swarm, proxyTempVariable, fn_mask=vizVariable) )
@@ -614,7 +614,7 @@ swarmfig.append( glucifer.objects.Points(swarm, proxyTempVariable, fn_mask=vizVa
 #swarmfig.save_database('test.gldb')
 
 
-# In[93]:
+# In[79]:
 
 #print('got to first update')
 
@@ -629,7 +629,7 @@ swarmfig.append( glucifer.objects.Points(swarm, proxyTempVariable, fn_mask=vizVa
 
 # ## Fault / interface
 
-# In[94]:
+# In[80]:
 
 def copy_markerSurface3D(ml, thickness=False, ID=False):
     
@@ -649,31 +649,31 @@ def copy_markerSurface3D(ml, thickness=False, ID=False):
     return new_line
 
 
-# In[95]:
+# In[81]:
 
 #Build fault
 
 fault = markerSurface3D(mesh, velocityField, xs, ys,zs, ndp.faultThickness, 1.)
 
 
-# In[96]:
+# In[82]:
 
 #ndp.faultThickness*sf.lengthScale
 
 
-# In[97]:
+# In[83]:
 
 #print('got to test point')
 
 uw.barrier()
 
 
-# In[99]:
+# In[84]:
 
 #ndp.faultThickness, ndp.mantleCrustDepth
 
 
-# In[107]:
+# In[85]:
 
 #inform the mesh of the fault
 
@@ -689,12 +689,12 @@ if directorVector.data.shape[0]:
         directorVector.data[nzv] = dv[nzv]
 
 
-# In[106]:
+# In[ ]:
 
 
 
 
-# In[36]:
+# In[86]:
 
 #Copy the fault and jitter, this is the swarm we'll capture inteface details on 
 
@@ -719,12 +719,12 @@ with metricSwarm.swarm.deform_swarm():
 # 
 # This bit needs work
 
-# In[37]:
+# In[87]:
 
 mesh.minCoord[1]
 
 
-# In[38]:
+# In[88]:
 
 def swarmToTemp():
 
@@ -754,13 +754,13 @@ def swarmToTemp():
     temperatureField.data[tWalls.data] = 0.
 
 
-# In[39]:
+# In[89]:
 
 #map proxy temp (swarm var) to mesh variable
 swarmToTemp()
 
 
-# In[40]:
+# In[90]:
 
 fig= glucifer.Figure(quality=3, boundingBox=bBox)
 
@@ -778,12 +778,12 @@ fig.save_database('temp.gldb')
 
 # ## adiabatic temp correction
 
-# In[41]:
+# In[91]:
 
 #(w0*sf.lengthScale)/(2.*np.sqrt(dp.refDiffusivity*ageAtTrenchSeconds))
 
 
-# In[42]:
+# In[92]:
 
 #Adiabatic correction: this is added to the arrhenius laws to simulate the adiabatic component
 #We'll use a double linearisation of the adiabatic temp function:
@@ -810,7 +810,7 @@ else:
 #swarm.fn_particle_found() conditional
 
 
-# In[43]:
+# In[93]:
 
 #fig= glucifer.Figure(quality=3, boundingBox= bBox)
 
@@ -826,7 +826,7 @@ else:
 # 
 # Then use population_control to fill out the swarm
 
-# In[44]:
+# In[94]:
 
 population_control = uw.swarm.PopulationControl(swarm, deleteThreshold=0.006, splitThreshold=0.25, maxDeletions=1, maxSplits=3, aggressive=True,aggressiveThreshold=0.9, particlesPerCell=int(md.ppc))
 
@@ -848,19 +848,19 @@ population_control = uw.swarm.PopulationControl(swarm, deleteThreshold=0.006, sp
 #         count += 1
 #     
 
-# In[45]:
+# In[95]:
 
 #keep it simple for now
 def repopulate():
     population_control.repopulate()
 
 
-# In[46]:
+# In[96]:
 
 repopulate()
 
 
-# In[47]:
+# In[97]:
 
 ((float(swarm.particleGlobalCount)/mesh.elementsGlobal))/md.ppc
 
@@ -870,7 +870,7 @@ repopulate()
 # Use the temperature gradient to define a restriction around the Ridges
 # This coud be used to determin locations for crust creation, etc.
 
-# In[48]:
+# In[98]:
 
 #depthMorTest = 20e3/sf.lengthScale
 
@@ -880,7 +880,7 @@ repopulate()
 #morRestrictFn = fn.math.abs(nearSurfTempGrad) < 50.
 
 
-# In[49]:
+# In[99]:
 
 #fig= glucifer.Figure(quality=3)
 #fig.append( glucifer.objects.Surface(mesh,repopMaskFn))
@@ -891,7 +891,7 @@ repopulate()
 
 # ##  Material Graph
 
-# In[50]:
+# In[100]:
 
 ###################
 #initial particle layout
@@ -917,7 +917,7 @@ MG.build_condition_list(materialVariable)
 materialVariable.data[:] = fn.branching.conditional(MG.condition_list).evaluate(swarm)
 
 
-# In[51]:
+# In[101]:
 
 #Final particle transformation rules
 #restrict crust creation - avoid crust on the upper plate
@@ -933,18 +933,20 @@ MG.add_transition((mantleID,crustID), xFn, operator.lt, (mesh.minCoord[0] - ndp.
 MG.build_condition_list(materialVariable)
 
 
-# In[52]:
+# In[106]:
 
 fig3= glucifer.Figure(quality=3, boundingBox=bBox)
 fig3.append( glucifer.objects.Points(swarm,materialVariable, pointSize=2, fn_mask=vizVariable))
+fig3.append( glucifer.objects.Mesh(mesh,opacity=0.2))
+
 #fig1.append( glucifer.objects.Points(metricSwarm.swarm, pointSize=1))
 #fig3.show()
-fig3.save_database('mat.gldb')
+#fig3.save_database('mat.gldb')
 
 
 # ## choose temp field to use
 
-# In[53]:
+# In[103]:
 
 if md.thermal:
     temperatureFn = temperatureField
@@ -1169,9 +1171,17 @@ solver = uw.systems.Solver(stokes)
 
 # In[ ]:
 
+solver.set_inner_method("mumps")
+solver.options.scr.ksp_type="cg"
+solver.set_penalty(1.0e7)
+solver.options.scr.ksp_rtol = 1.0e-4
+
+
+# In[ ]:
+
 
 solver.solve(nonLinearIterate=True, nonLinearTolerance=5.0e-2,
-              nonLinearMaxIterations=15,)
+              nonLinearMaxIterations=15)
 
 #solver.print_stats()
 
@@ -1245,7 +1255,7 @@ if md.thermal:
 else:
     fig1.append( glucifer.objects.Points(swarm, proxyTempVariable, pointSize=2, fn_mask=vizVariable))
 fig1.append( glucifer.objects.Points(swarm, materialVariable, pointSize=2, fn_mask=vizVariable))
-fig1.append( glucifer.objects.VectorArrows(mesh, velocityField, arrowHead=5, scaling=0.00005))
+fig1.append( glucifer.objects.VectorArrows(mesh, velocityField, arrowHead=5, scaling=0.0005))
 
 
 # In[ ]:
@@ -1320,10 +1330,10 @@ def swarm_update():
     
     
     #rebuild the ridge mask guy
-    nearSurfTempGrad = fn.branching.conditional( ((depthFn < depthMorTest, temperatureField.fn_gradient[1] ), 
-                                           (True,                      0.)  ))
+    #nearSurfTempGrad = fn.branching.conditional( ((depthFn < depthMorTest, temperatureField.fn_gradient[1] ), 
+    #                                      (True,                      0.)  ))
 
-    morRestrictFn = fn.math.abs(nearSurfTempGrad) < 50.
+    #morRestrictFn = fn.math.abs(nearSurfTempGrad) < 50.
     
     
     #rebuild the material graph condition list, and apply to swarm
