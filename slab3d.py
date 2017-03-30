@@ -186,8 +186,8 @@ md.aspectY = 8.
 md.refineMeshStatic=False
 md.stickyAir=False
 md.aspectRatio=5.
-md.res=16
-md.ppc=15                                 #particles per cell
+md.res=48
+md.ppc=25                                 #particles per cell
 md.elementType="Q1/dQ0"
 #md.elementType="Q2/DPC1"
 md.secInvFac=math.sqrt(1.)
@@ -1159,18 +1159,19 @@ solver = uw.systems.Solver(stokes)
 
 # In[ ]:
 
-solver.options.main.Q22_pc_type='gkgdiag'
-solver.options.scr.use_previous_guess = True
-solver.options.mg.levels = 3
-solver.options.A11.ksp_rtol=1e-4
-solver.options.scr.ksp_rtol=1e-4
+#solver.options.main.Q22_pc_type='gkgdiag'
+#solver.options.scr.use_previous_guess = True
+#solver.options.mg.levels = 3
+#solver.options.A11.ksp_rtol=1e-4
+#solver.options.scr.ksp_rtol=1e-4
 #solver.set_penalty(1.0)
 
 
 # In[ ]:
 
 
-solver.solve(nonLinearIterate=True)
+solver.solve(nonLinearIterate=True, nonLinearTolerance=5.0e-2,
+              nonLinearMaxIterations=15,)
 
 #solver.print_stats()
 
