@@ -181,7 +181,7 @@ dp.tempGradSlab = (dp.refExpansivity*dp.refGravity*(dp.surfaceTemp + 400.))/dp.s
 #Modelling and Physics switches
 
 md = edict({})
-md.aspectX = 0.25
+md.aspectX = 0.5
 md.aspectY = 4.
 md.refineMeshStatic=False
 md.stickyAir=False
@@ -1171,10 +1171,10 @@ solver = uw.systems.Solver(stokes)
 
 # In[ ]:
 
-solver.set_inner_method("mumps")
-solver.options.scr.ksp_type="cg"
-solver.set_penalty(1.0e7)
-solver.options.scr.ksp_rtol = 1.0e-4
+#solver.set_inner_method("mumps")
+#solver.options.scr.ksp_type="cg"
+#solver.set_penalty(1.0e7)
+#solver.options.scr.ksp_rtol = 1.0e-4
 
 
 # In[ ]:
@@ -1360,7 +1360,8 @@ files_output = 10
 
 while step < maxSteps:
     
-    solver.solve(nonLinearIterate=True)
+    solver.solve(nonLinearIterate=True, nonLinearTolerance=5.0e-2,
+              nonLinearMaxIterations=15)
     
     # main
     time,step = main_update()
