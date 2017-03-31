@@ -1161,12 +1161,11 @@ solver = uw.systems.Solver(stokes)
 
 # In[ ]:
 
-#solver.options.main.Q22_pc_type='gkgdiag'
-#solver.options.scr.use_previous_guess = True
-#solver.options.mg.levels = 3
-#solver.options.A11.ksp_rtol=1e-4
-#solver.options.scr.ksp_rtol=1e-4
-#solver.set_penalty(1.0)
+solver.options.main.Q22_pc_type='gkgdiag'
+solver.options.scr.ksp_rtol=5e-5
+solver.set_inner_method('mg')
+solver.options.mg.levels = 3
+#solver.set_penalty(10.)
 
 
 # In[ ]:
@@ -1192,7 +1191,7 @@ fig= glucifer.Figure(quality=3)
 
 #fig.append( glucifer.objects.Mesh(mesh, opacity=0.2))
 fig.append( glucifer.objects.Points(swarm, proxyTempVariable, pointSize=2))
-fig.append( glucifer.objects.VectorArrows(mesh, velocityField, arrowHead=5, scaling=0.00005))
+fig.append( glucifer.objects.VectorArrows(mesh, velocityField, scaling=0.00005))
 
 #fig.show()
 #fig.save_image('solve1.png')
@@ -1255,7 +1254,7 @@ if md.thermal:
 else:
     fig1.append( glucifer.objects.Points(swarm, proxyTempVariable, pointSize=2, fn_mask=vizVariable))
 fig1.append( glucifer.objects.Points(swarm, materialVariable, pointSize=2, fn_mask=vizVariable))
-fig1.append( glucifer.objects.VectorArrows(mesh, velocityField, arrowHead=5, scaling=0.0005))
+fig1.append( glucifer.objects.VectorArrows(mesh, velocityField,  scaling=0.0005))
 
 
 # In[ ]:
@@ -1350,7 +1349,7 @@ def swarm_update():
 
 time = 0.  # Initial time
 step = 0   # Initial timestep
-maxSteps = 50      # Maximum timesteps (201 is recommended)
+maxSteps = 100      # Maximum timesteps (201 is recommended)
 steps_output = 5   # output every 10 timesteps
 metrics_output = 5
 files_output = 10
