@@ -149,9 +149,9 @@ dp.lowerMantleVolume=1.5e-6
     #dp.peierlsExponent=20.                  #Peierls creep stress exponent 
 
 #Rheology - cutoff values
-dp.viscosityMin=1e18 
-dp.viscosityMax=1e25                    #viscosity max in the mantle material
-dp.viscosityMinCrust=1e18               #viscosity min in the weak-crust material
+dp.viscosityMin=dp.refViscosity*5e-2
+dp.viscosityMax=dp.refViscosity*1e3                 #viscosity max in the mantle material
+dp.viscosityMinCrust=1e20               #viscosity min in the weak-crust material
 dp.viscosityMaxCrust=1e20               #viscosity max in the weak-crust material
 dp.yieldStressMax=300*1e6              #
 #Intrinsic Lengths
@@ -171,7 +171,7 @@ dp.opMaxAge=100e6                       #age of op
 #Misc
 dp.stickyAirDepth=100e3                 #depth of sticky air layer
 dp.viscosityStickyAir=1e19              #stick air viscosity, normal
-dp.lowerMantleViscFac=1.
+dp.lowerMantleViscFac=30.
 #derived params
 dp.deltaTemp = dp.potentialTemp-dp.surfaceTemp
 dp.tempGradMantle = (dp.refExpansivity*dp.refGravity*(dp.potentialTemp))/dp.specificHeat
@@ -200,7 +200,13 @@ md.compBuoyancy = False
 
 # In[ ]:
 
+####TEST BLOCK, smaller activation energy
 
+fracE = 0.4 #We want to multiply the activation Energy by this value
+delE= dp.diffusionEnergy - dp.diffusionEnergy*fracE
+dp.diffusionEnergy *= fracE
+dp.diffusionVolume *=0.7
+dp.diffusionPreExp /= np.exp(delE /(dp.gasConstant*dp.potentialTemp))
 
 
 # In[45]:
