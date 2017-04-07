@@ -17,7 +17,7 @@
 # 
 # 
 
-# In[39]:
+# In[21]:
 
 import numpy as np
 import underworld as uw
@@ -46,7 +46,7 @@ from unsupported_dan.alchemy.materialGraph import MatGraph
 
 # ## Setup output directories
 
-# In[40]:
+# In[22]:
 
 ############
 #Model letter and number
@@ -74,7 +74,7 @@ else:
                 Model  = farg
 
 
-# In[41]:
+# In[23]:
 
 ###########
 #Standard output directory setup
@@ -108,12 +108,12 @@ uw.barrier() #Barrier here so no procs run the check in the next cell too early
 
 # ## Model parameters and scaling
 
-# In[42]:
+# In[24]:
 
 #1./1.87e9, 1./2.36e14
 
 
-# In[43]:
+# In[25]:
 
 dp = edict({})
 #Main physical paramters
@@ -182,12 +182,12 @@ dp.tempGradSlab = (dp.refExpansivity*dp.refGravity*(dp.surfaceTemp + 400.))/dp.s
 #Modelling and Physics switches
 
 md = edict({})
-md.aspectX = 0.5
+md.aspectX = 1.0
 md.aspectY = 4.
 md.refineMeshStatic=False
 md.stickyAir=False
 md.aspectRatio=5.
-md.res=64
+md.res=16
 md.ppc=25                                 #particles per cell
 md.elementType="Q1/dQ0"
 #md.elementType="Q2/DPC1"
@@ -196,20 +196,34 @@ md.courantFac=0.5                         #extra limitation on timestepping
 md.thermal = False                        #thermal system or compositional
 md.swarmInitialFac = 0.6                 #initial swarm layout will be int(md.ppc*md.swarmInitialFac), popControl will densify later
 md.compBuoyancy = False
+md.uniformAge = True
 
 
-# In[ ]:
+
+# In[26]:
 
 ####TEST BLOCK, smaller activation energy
 
-fracE = 0.4 #We want to multiply the activation Energy by this value
+fracE = 0.6 #We want to multiply the activation Energy by this value
 delE= dp.diffusionEnergy - dp.diffusionEnergy*fracE
 dp.diffusionEnergy *= fracE
-dp.diffusionVolume *=0.7
+dp.diffusionVolume *=0.8
 dp.diffusionPreExp /= np.exp(delE /(dp.gasConstant*dp.potentialTemp))
 
 
-# In[45]:
+# In[27]:
+
+##Parse any command-line args
+
+from unsupported_dan.cl_args import easy_args
+sysArgs = sys.argv
+
+#We want to run this on both the paramter dict, and the model dict
+easy_args(sysArgs, dp)
+easy_args(sysArgs, md)
+
+
+# In[28]:
 
 sf = edict({})
 
@@ -284,7 +298,7 @@ ndp.radiusOfCurv = dp.radiusOfCurv/sf.lengthScale
 
 
 
-# In[7]:
+# In[29]:
 
 #Domain and Mesh paramters
 zres = int(md.res)
@@ -316,13 +330,13 @@ if md.thermal:
 # ## miscellaneous Python functions 
 # 
 
-# In[8]:
+# In[30]:
 
 def bbox(mesh):
     return ((mesh.minCoord[0], mesh.minCoord[1], mesh.minCoord[2]),(mesh.maxCoord[0], mesh.maxCoord[1], mesh.minCoord[2]))
 
 
-# In[9]:
+# In[31]:
 
 ## general underworld2 functions 
 
@@ -350,14 +364,14 @@ def inCircleFnGenerator(centre, radius):
 
 
 
-# In[10]:
+# In[32]:
 
 mesh.minCoord, mesh.maxCoord
 
 
 # ## 1. Static Mesh refinement
 
-# In[11]:
+# In[33]:
 
 if md.refineMeshStatic:
     mesh.reset()
@@ -400,7 +414,7 @@ if md.refineMeshStatic:
          mesh.data[:,1] = newYpos[:,0]
 
 
-# In[12]:
+# In[34]:
 
 #fig= glucifer.Figure(quality=3)
 
@@ -418,7 +432,7 @@ if md.refineMeshStatic:
 
 # ## Boundary Conditions
 
-# In[13]:
+# In[35]:
 
 #Stokes BCs
 
@@ -434,7 +448,7 @@ freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField,
                                                indexSetsPerDof = ( iWalls, jWalls, kWalls) )
 
 
-# In[14]:
+# In[36]:
 
 #Energy BCs
 
@@ -445,7 +459,7 @@ if md.thermal:
 
 # ## Swarm
 
-# In[15]:
+# In[37]:
 
 #create material swarm
 swarm = uw.swarm.Swarm(mesh=mesh, particleEscape=True)
@@ -467,7 +481,7 @@ proxyTempVariable.data[:] = 0.0
 
 # ## Materials
 
-# In[16]:
+# In[38]:
 
 #Materials
 mantleID = 0
@@ -489,15 +503,24 @@ material_list = [mantleID, crustID, airID]
 
 # ## Initial Conditions
 
-# In[17]:
+# In[57]:
 
 proxyageFn = fn.branching.conditional([(yFn < ndp.subZoneLoc, ndp.slabMaxAge*fn.math.abs(yFn)), #idea is to make this arbitrarily complex
                                   (True, ndp.opMaxAge)])
 
 
 
-#w0 = (2.3*math.sqrt(dp.refDiffusivity*dp.slabMaxAge*(3600*24*365)))/sf.lengthScale #diffusion depth of plate at the trench
-w0 = 2.3*math.sqrt(1.*ndp.slabMaxAge)
+if md.uniformAge:
+    sig = 150e3/sf.lengthScale
+    ridgeFn = 1. -                  fn.math.exp(-1.*(yFn - 0.)**2/(2 * sig**2))
+        
+    proxyageFn = fn.branching.conditional([(yFn < ndp.subZoneLoc, ridgeFn*ndp.slabMaxAge), #idea is to make this arbitrarily complex
+                                  (True, ndp.opMaxAge)])
+    
+
+
+
+thicknessAtTrench = 2.3*math.sqrt(1.*ndp.slabMaxAge)
 
 
 # ### Marker Surface for slab
@@ -516,7 +539,7 @@ w0 = 2.3*math.sqrt(1.*ndp.slabMaxAge)
 # 
 # zs = 1.- (ys - ndp.subZoneLoc)*dydx
 
-# In[47]:
+# In[58]:
 
 def slab_top(trench, normal, gradientFn, ds, maxDepth, mesh):
     """
@@ -589,7 +612,7 @@ def slab_top(trench, normal, gradientFn, ds, maxDepth, mesh):
     
 
 
-# In[48]:
+# In[59]:
 
 def polyGradientFn(S):
     if S == 0.:
@@ -598,7 +621,7 @@ def polyGradientFn(S):
         return -1*(S/ndp.radiusOfCurv)**2
 
 
-# In[49]:
+# In[60]:
 
 ds = 5e3/sf.lengthScale
 normal = [0.,1., 0.]
@@ -611,45 +634,45 @@ trenchzs = np.ones(trenchxs.shape)
 trench = np.column_stack((trenchxs, trenchys,trenchzs))
 
 
-# In[50]:
+# In[61]:
 
 #trench
 
 
-# In[73]:
+# In[62]:
 
 slabdata = slab_top(trench, normal, polyGradientFn, ds, ndp.maxDepth, mesh)
 
 
-# In[80]:
+# In[63]:
 
 slabxs = slabdata[:,:,0].flatten()
 slabys = slabdata[:,:,1].flatten()
 slabzs = slabdata[:,:,2].flatten()
 
 
-# In[81]:
+# In[64]:
 
 #create the makerSurface
 
-slabTop = markerSurface3D(mesh, velocityField, slabxs, slabys ,slabzs , 1.5*w0, 1.)
+slabTop = markerSurface3D(mesh, velocityField, slabxs, slabys ,slabzs , 1.5*thicknessAtTrench, 1.)
 
 
 
-# In[82]:
+# In[65]:
 
 #Assign the signed distance for the slab
 #in this case we only want the portion where the signed distance is positive
 
 
-#Note distance=2.*w0: we actually want to allow distance greater than w0 in the kDTree query, 
+#Note distance=2.*thicknessAtTrench: we actually want to allow distance greater than thicknessAtTrench in the kDTree query, 
 #as some of these distances will not be orthogonal to the marker line
 #The dot product in the function will project these distances onto the normal vector
-#We'll cull distances greater than w0 with a numpy boolean slice
+#We'll cull distances greater than thicknessAtTrench with a numpy boolean slice
 #this is a big advantage in parallel
 
 
-sd, pts = slabTop.compute_signed_distance(swarm.particleCoordinates.data, distance=2.*w0)
+sd, pts = slabTop.compute_signed_distance(swarm.particleCoordinates.data, distance=2.*thicknessAtTrench)
 signedDistanceVariable.data[np.logical_and(sd>0, sd<=slabTop.thickness)] = sd[np.logical_and(sd>0, sd<=slabTop.thickness)]
 
 
@@ -658,15 +681,18 @@ signedDistanceVariable.data[np.logical_and(sd>0, sd<=slabTop.thickness)] = sd[np
 
 
 
-# In[83]:
+# In[66]:
 
 slabCirc = inCircleFnGenerator((ndp.subZoneLoc, 1.0), ndp.maxDepth)
 
 
 bufferlength = 1e3/sf.lengthScale
 
+plateDepthFn = fn.branching.conditional([(depthFn < thicknessAtTrench, depthFn),
+                                        (True, 1.)])
+
 #plateTempProxFn = fn.math.erf((depthFn*sf.lengthScale)/(2.3*fn.math.sqrt(dp.refDiffusivity*proxyageFn)))
-plateTempProxFn = fn.math.erf((depthFn)/(2.3*fn.math.sqrt(1.*proxyageFn)))
+plateTempProxFn = fn.math.erf((plateDepthFn)/(2.3*fn.math.sqrt(1.*proxyageFn)))
 
 #slabTempProx  = fn.math.erf((signedDistanceVariable*sf.lengthScale)/(2.3*fn.math.sqrt(dp.refDiffusivity*proxyageFn)))
 slabTempProx  = fn.math.erf((signedDistanceVariable)/(2.3*fn.math.sqrt(1.*proxyageFn)))
@@ -690,25 +716,25 @@ proxyTempVariable.data[:] = proxytempConds.evaluate(swarm)
 
 
 
-# In[84]:
+# In[67]:
 
 #proxyTempVariable.data.max()
 
 
-# In[85]:
+# In[68]:
 
 print('test Point')
 
 
 # ## Mask variable for viz
 
-# In[86]:
+# In[69]:
 
 bBox = bbox(mesh)
 bBox
 
 
-# In[87]:
+# In[70]:
 
 vizVariable      = swarm.add_variable( dataType="int", count=1 )
 
@@ -719,12 +745,12 @@ vizConds = fn.branching.conditional([(proxyTempVariable < 0.9*1., 1),
 vizVariable.data[:] = vizConds.evaluate(swarm)
 
 
-# In[88]:
+# In[71]:
 
 #fn_mask=vizVariable
 
 
-# In[91]:
+# In[72]:
 
 #swarmfig = glucifer.Figure(figsize=(800,400), boundingBox=bBox)
 #swarmfig.append( glucifer.objects.Points(swarm, proxyTempVariable, fn_mask=vizVariable) )
@@ -784,7 +810,7 @@ fault.swarm.update_particle_owners()
 
 #inform the mesh of the fault
 
-sd, pts0 = fault.compute_signed_distance(swarm.particleCoordinates.data, distance=w0)
+sd, pts0 = fault.compute_signed_distance(swarm.particleCoordinates.data, distance=thicknessAtTrench)
 sp, pts0 = fault.compute_marker_proximity(swarm.particleCoordinates.data)
 
 materialVariable.data[np.logical_and(sd<0,sp == fault.ID)] = sp[np.logical_and(sd<0,sp == fault.ID)]
@@ -906,17 +932,17 @@ swarmToTemp()
 #dp.tempGradSlab linearised at typical slab temp
 
 
-w0 = 2.3*math.sqrt(1.*ndp.slabMaxAge)
-tempAtw0  = math.erf((w0)/(2.3*math.sqrt(1.*ndp.slabMaxAge))) #this is the isotherm used to define the slab / mantle boundary
+thicknessAtTrench = 2.3*math.sqrt(1.*ndp.slabMaxAge)
+tempAtTrench  = math.erf((thicknessAtTrench)/(2.3*math.sqrt(1.*ndp.slabMaxAge))) #this is the isotherm used to define the slab / mantle boundary
 
 
 dp.tempGradMantle, dp.tempGradSlab
 
 if md.thermal:
-    adiabaticCorrectFn = fn.branching.conditional([(temperatureField > tempAtw0, depthFn*ndp.tempGradMantle), #idea is to make this arbitrarily complex
+    adiabaticCorrectFn = fn.branching.conditional([(temperatureField > tempAtTrench, depthFn*ndp.tempGradMantle), #idea is to make this arbitrarily complex
                                       (True, depthFn*ndp.tempGradSlab) ])
 else:
-    adiabaticCorrectFn = fn.branching.conditional([(proxyTempVariable > tempAtw0, depthFn*ndp.tempGradMantle), #idea is to make this arbitrarily complex
+    adiabaticCorrectFn = fn.branching.conditional([(proxyTempVariable > tempAtTrench, depthFn*ndp.tempGradMantle), #idea is to make this arbitrarily complex
                                       (True, depthFn*ndp.tempGradSlab) ])
 
 
@@ -1019,7 +1045,7 @@ MG.add_nodes_from(material_list)
 
 #mantle  => crust
 MG.add_transition((mantleID,crustID), depthFn, operator.lt, ndp.mantleCrustDepth)
-MG.add_transition((mantleID,crustID), yFn, operator.gt, 2.*w0)   #This distance away from the ridge
+MG.add_transition((mantleID,crustID), yFn, operator.gt, 2.*thicknessAtTrench)   #This distance away from the ridge
 MG.add_transition((mantleID,crustID), yFn, operator.lt, ndp.subZoneLoc)
 
                   
@@ -1040,7 +1066,7 @@ MG.remove_edges_from([(mantleID,crustID)])
 
 #mantle  => crust
 MG.add_transition((mantleID,crustID), depthFn, operator.lt, ndp.mantleCrustDepth)
-MG.add_transition((mantleID,crustID), yFn, operator.gt, 2.*w0) 
+MG.add_transition((mantleID,crustID), yFn, operator.gt, 2.*thicknessAtTrench) 
 MG.add_transition((mantleID,crustID), yFn, operator.lt, ndp.subZoneLoc/2.)   
 MG.add_transition((mantleID,crustID), xFn, operator.lt, (mesh.minCoord[0] - ndp.subZoneLoc)/2.)
 
