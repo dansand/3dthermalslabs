@@ -17,7 +17,7 @@
 # 
 # 
 
-# In[21]:
+# In[79]:
 
 import numpy as np
 import underworld as uw
@@ -46,7 +46,7 @@ from unsupported_dan.alchemy.materialGraph import MatGraph
 
 # ## Setup output directories
 
-# In[22]:
+# In[80]:
 
 ############
 #Model letter and number
@@ -74,7 +74,7 @@ else:
                 Model  = farg
 
 
-# In[23]:
+# In[81]:
 
 ###########
 #Standard output directory setup
@@ -108,12 +108,12 @@ uw.barrier() #Barrier here so no procs run the check in the next cell too early
 
 # ## Model parameters and scaling
 
-# In[24]:
+# In[82]:
 
 #1./1.87e9, 1./2.36e14
 
 
-# In[25]:
+# In[83]:
 
 dp = edict({})
 #Main physical paramters
@@ -200,7 +200,7 @@ md.uniformAge = True
 
 
 
-# In[26]:
+# In[84]:
 
 ####TEST BLOCK, smaller activation energy
 
@@ -211,7 +211,7 @@ dp.diffusionVolume *=0.8
 dp.diffusionPreExp /= np.exp(delE /(dp.gasConstant*dp.potentialTemp))
 
 
-# In[27]:
+# In[85]:
 
 ##Parse any command-line args
 
@@ -223,7 +223,7 @@ easy_args(sysArgs, dp)
 easy_args(sysArgs, md)
 
 
-# In[28]:
+# In[86]:
 
 sf = edict({})
 
@@ -298,7 +298,7 @@ ndp.radiusOfCurv = dp.radiusOfCurv/sf.lengthScale
 
 
 
-# In[29]:
+# In[87]:
 
 #Domain and Mesh paramters
 zres = int(md.res)
@@ -330,13 +330,13 @@ if md.thermal:
 # ## miscellaneous Python functions 
 # 
 
-# In[30]:
+# In[88]:
 
 def bbox(mesh):
     return ((mesh.minCoord[0], mesh.minCoord[1], mesh.minCoord[2]),(mesh.maxCoord[0], mesh.maxCoord[1], mesh.minCoord[2]))
 
 
-# In[31]:
+# In[89]:
 
 ## general underworld2 functions 
 
@@ -364,14 +364,14 @@ def inCircleFnGenerator(centre, radius):
 
 
 
-# In[32]:
+# In[90]:
 
 mesh.minCoord, mesh.maxCoord
 
 
 # ## 1. Static Mesh refinement
 
-# In[33]:
+# In[91]:
 
 if md.refineMeshStatic:
     mesh.reset()
@@ -414,7 +414,7 @@ if md.refineMeshStatic:
          mesh.data[:,1] = newYpos[:,0]
 
 
-# In[34]:
+# In[92]:
 
 #fig= glucifer.Figure(quality=3)
 
@@ -432,7 +432,7 @@ if md.refineMeshStatic:
 
 # ## Boundary Conditions
 
-# In[35]:
+# In[93]:
 
 #Stokes BCs
 
@@ -448,7 +448,7 @@ freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField,
                                                indexSetsPerDof = ( iWalls, jWalls, kWalls) )
 
 
-# In[36]:
+# In[94]:
 
 #Energy BCs
 
@@ -459,7 +459,7 @@ if md.thermal:
 
 # ## Swarm
 
-# In[37]:
+# In[95]:
 
 #create material swarm
 swarm = uw.swarm.Swarm(mesh=mesh, particleEscape=True)
@@ -481,7 +481,7 @@ proxyTempVariable.data[:] = 0.0
 
 # ## Materials
 
-# In[38]:
+# In[96]:
 
 #Materials
 mantleID = 0
@@ -496,14 +496,14 @@ materialVariable.data[:] = mantleID
 material_list = [mantleID, crustID, airID]
 
 
-# In[ ]:
+# In[97]:
 
-
+#mesh.maxCoord
 
 
 # ## Initial Conditions
 
-# In[57]:
+# In[98]:
 
 proxyageFn = fn.branching.conditional([(yFn < ndp.subZoneLoc, ndp.slabMaxAge*fn.math.abs(yFn)), #idea is to make this arbitrarily complex
                                   (True, ndp.opMaxAge)])
@@ -512,10 +512,11 @@ proxyageFn = fn.branching.conditional([(yFn < ndp.subZoneLoc, ndp.slabMaxAge*fn.
 
 if md.uniformAge:
     sig = 150e3/sf.lengthScale
-    ridgeFn = 1. -                  fn.math.exp(-1.*(yFn - 0.)**2/(2 * sig**2))
+    ridgeFn = 1. -                  fn.math.exp(-1.*(yFn - 0.)**2/(2 * sig**2))-                 fn.math.exp(-1.*(yFn - mesh.maxCoord[1])**2/(2 * sig**2))
+    
         
     proxyageFn = fn.branching.conditional([(yFn < ndp.subZoneLoc, ridgeFn*ndp.slabMaxAge), #idea is to make this arbitrarily complex
-                                  (True, ndp.opMaxAge)])
+                                  (True, ridgeFn*ndp.opMaxAge)])
     
 
 
@@ -539,7 +540,7 @@ thicknessAtTrench = 2.3*math.sqrt(1.*ndp.slabMaxAge)
 # 
 # zs = 1.- (ys - ndp.subZoneLoc)*dydx
 
-# In[58]:
+# In[99]:
 
 def slab_top(trench, normal, gradientFn, ds, maxDepth, mesh):
     """
@@ -568,7 +569,10 @@ def slab_top(trench, normal, gradientFn, ds, maxDepth, mesh):
     normal = np.array(normal)/np.linalg.norm(normal)
     maxDepth = np.array(maxDepth)
     
-    #test if gradientFn is a function   
+    #test if gradientFn is a function  
+    #to do
+    
+    #
     points = []
     points.append(list(trench))
     
@@ -612,7 +616,7 @@ def slab_top(trench, normal, gradientFn, ds, maxDepth, mesh):
     
 
 
-# In[59]:
+# In[100]:
 
 def polyGradientFn(S):
     if S == 0.:
@@ -621,7 +625,7 @@ def polyGradientFn(S):
         return -1*(S/ndp.radiusOfCurv)**2
 
 
-# In[60]:
+# In[101]:
 
 ds = 5e3/sf.lengthScale
 normal = [0.,1., 0.]
@@ -634,32 +638,32 @@ trenchzs = np.ones(trenchxs.shape)
 trench = np.column_stack((trenchxs, trenchys,trenchzs))
 
 
-# In[61]:
+# In[102]:
 
 #trench
 
 
-# In[62]:
+# In[103]:
 
 slabdata = slab_top(trench, normal, polyGradientFn, ds, ndp.maxDepth, mesh)
 
 
-# In[63]:
+# In[104]:
 
 slabxs = slabdata[:,:,0].flatten()
 slabys = slabdata[:,:,1].flatten()
 slabzs = slabdata[:,:,2].flatten()
 
 
-# In[64]:
+# In[105]:
 
 #create the makerSurface
 
-slabTop = markerSurface3D(mesh, velocityField, slabxs, slabys ,slabzs , 1.5*thicknessAtTrench, 1.)
+slabTop = markerSurface3D(mesh, velocityField, slabxs, slabys ,slabzs , thicknessAtTrench, 1.)
 
 
 
-# In[65]:
+# In[106]:
 
 #Assign the signed distance for the slab
 #in this case we only want the portion where the signed distance is positive
@@ -681,9 +685,9 @@ signedDistanceVariable.data[np.logical_and(sd>0, sd<=slabTop.thickness)] = sd[np
 
 
 
-# In[66]:
+# In[107]:
 
-slabCirc = inCircleFnGenerator((ndp.subZoneLoc, 1.0), ndp.maxDepth)
+#slabCirc = inCircleFnGenerator((ndp.subZoneLoc, 1.0), ndp.maxDepth)
 
 
 bufferlength = 1e3/sf.lengthScale
@@ -703,9 +707,12 @@ slabTempProx  = fn.math.erf((signedDistanceVariable)/(2.3*fn.math.sqrt(1.*proxya
 #                          (True, plateTempProxFn)]) #take the min of the plate and slab thermal stencil 
 
 
-proxytempConds = fn.branching.conditional([(signedDistanceVariable < bufferlength, plateTempProxFn),
+proxytempConds = fn.branching.conditional([(signedDistanceVariable < bufferlength, plateTempProxFn), #What is this?
                           (depthFn > ndp.maxDepth, 1.),                 
                           (True, fn.misc.min(slabTempProx , plateTempProxFn)) ]) #take the min of the plate and slab thermal stenc
+
+
+
 
 
 proxyTempVariable.data[:] = proxytempConds.evaluate(swarm)
@@ -716,25 +723,25 @@ proxyTempVariable.data[:] = proxytempConds.evaluate(swarm)
 
 
 
-# In[67]:
+# In[108]:
 
 #proxyTempVariable.data.max()
 
 
-# In[68]:
+# In[109]:
 
 print('test Point')
 
 
 # ## Mask variable for viz
 
-# In[69]:
+# In[110]:
 
 bBox = bbox(mesh)
 bBox
 
 
-# In[70]:
+# In[111]:
 
 vizVariable      = swarm.add_variable( dataType="int", count=1 )
 
@@ -745,20 +752,20 @@ vizConds = fn.branching.conditional([(proxyTempVariable < 0.9*1., 1),
 vizVariable.data[:] = vizConds.evaluate(swarm)
 
 
-# In[71]:
+# In[112]:
 
 #fn_mask=vizVariable
 
 
-# In[72]:
+# In[113]:
 
-#swarmfig = glucifer.Figure(figsize=(800,400), boundingBox=bBox)
-#swarmfig.append( glucifer.objects.Points(swarm, proxyTempVariable, fn_mask=vizVariable) )
+swarmfig = glucifer.Figure(figsize=(800,400), boundingBox=bBox)
+swarmfig.append( glucifer.objects.Points(swarm, proxyTempVariable, fn_mask=vizVariable) )
 #swarmfig.show()
-#swarmfig.save_database('test.gldb')
+swarmfig.save_database('test.gldb')
 
 
-# In[92]:
+# In[114]:
 
 #print('got to first update')
 
