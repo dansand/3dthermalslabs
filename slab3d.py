@@ -117,7 +117,7 @@ uw.barrier() #Barrier here so no procs run the check in the next cell too early
 
 dp = edict({})
 #Main physical paramters
-dp.depth=1200e3                         #Depth
+dp.depth=900e3                         #Depth
 dp.refDensity=3300.                        #reference density
 dp.refGravity=9.8                          #surface gravity
 dp.refViscosity=1.8e19                       #reference upper mantle visc.
