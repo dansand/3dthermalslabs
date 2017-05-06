@@ -17,7 +17,7 @@
 # 
 # 
 
-# In[4]:
+# In[1]:
 
 import numpy as np
 import underworld as uw
@@ -48,7 +48,7 @@ from unsupported_dan.checkpoint.checkpoint import checkpoint
 
 # ## Setup output directories
 
-# In[5]:
+# In[2]:
 
 ############
 #Model letter and number
@@ -76,7 +76,7 @@ else:
                 Model  = farg
 
 
-# In[6]:
+# In[3]:
 
 ###########
 #Standard output directory setup
@@ -105,7 +105,7 @@ if uw.rank()==0:
 uw.barrier() #Barrier here so no procs run the check in the next cell too early
 
 
-# In[7]:
+# In[4]:
 
 #*************CHECKPOINT-BLOCK**************#
 
@@ -119,12 +119,12 @@ cp.restart, cp.savepath, cp.loadpath, cp.state, cp.objDict
 
 # ## Model parameters and scaling
 
-# In[8]:
+# In[5]:
 
 #1./1.87e9, 1./2.36e14
 
 
-# In[93]:
+# In[6]:
 
 dp = edict({})
 #Main physical paramters
@@ -214,7 +214,7 @@ md.checkpointEvery = 5
 
 
 
-# In[94]:
+# In[7]:
 
 ####TEST BLOCK, smaller activation energy
 
@@ -225,7 +225,7 @@ dp.diffusionVolume *=0.8
 dp.diffusionPreExp /= np.exp(delE /(dp.gasConstant*dp.potentialTemp))
 
 
-# In[95]:
+# In[8]:
 
 ##Parse any command-line args
 
@@ -237,7 +237,7 @@ easy_args(sysArgs, dp)
 easy_args(sysArgs, md)
 
 
-# In[96]:
+# In[9]:
 
 sf = edict({})
 
@@ -312,7 +312,7 @@ ndp.radiusOfCurv = dp.radiusOfCurv/sf.lengthScale
 
 
 
-# In[97]:
+# In[10]:
 
 #Domain and Mesh paramters
 zres = int(md.res)
@@ -336,7 +336,7 @@ if md.thermal:
     diffusivityFn = fn.misc.constant(1.)
 
 
-# In[ ]:
+# In[11]:
 
 #*************CHECKPOINT-BLOCK**************#
 cp.addObject(velocityField,'velocityField')
@@ -350,7 +350,7 @@ if md.thermal:
 #*************CHECKPOINT-BLOCK**************#
 
 
-# In[ ]:
+# In[12]:
 
 #*************CHECKPOINT-BLOCK**************#
 
@@ -363,16 +363,21 @@ if cp.restart:
 #*************CHECKPOINT-BLOCK**************#
 
 
+# In[ ]:
+
+
+
+
 # ## miscellaneous Python functions 
 # 
 
-# In[98]:
+# In[13]:
 
 def bbox(mesh):
     return ((mesh.minCoord[0], mesh.minCoord[1], mesh.minCoord[2]),(mesh.maxCoord[0], mesh.maxCoord[1], mesh.minCoord[2]))
 
 
-# In[99]:
+# In[14]:
 
 ## general underworld2 functions 
 
@@ -400,14 +405,14 @@ def inCircleFnGenerator(centre, radius):
 
 
 
-# In[100]:
+# In[15]:
 
 mesh.minCoord, mesh.maxCoord
 
 
 # ## 1. Static Mesh refinement
 
-# In[101]:
+# In[16]:
 
 if md.refineMeshStatic:
     mesh.reset()
@@ -450,7 +455,7 @@ if md.refineMeshStatic:
          mesh.data[:,1] = newYpos[:,0]
 
 
-# In[102]:
+# In[17]:
 
 #fig= glucifer.Figure(quality=3)
 
@@ -468,7 +473,7 @@ if md.refineMeshStatic:
 
 # ## Boundary Conditions
 
-# In[103]:
+# In[18]:
 
 #Stokes BCs
 
@@ -484,7 +489,7 @@ freeslipBC = uw.conditions.DirichletCondition( variable      = velocityField,
                                                indexSetsPerDof = ( iWalls, jWalls, kWalls) )
 
 
-# In[104]:
+# In[19]:
 
 #Energy BCs
 
@@ -495,7 +500,7 @@ if md.thermal:
 
 # ## Swarm
 
-# In[ ]:
+# In[20]:
 
 #Materials
 mantleID = 0
@@ -503,14 +508,11 @@ crustID = 1
 airID = 2      #in case we use sticky air
 
 
-# Swarm variables
-materialVariable.data[:] = mantleID
-
 #list of all material indexes
 material_list = [mantleID, crustID, airID]
 
 
-# In[105]:
+# In[21]:
 
 #*************CHECKPOINT-BLOCK**************#
 
@@ -537,26 +539,26 @@ else:
 #*************CHECKPOINT-BLOCK**************#
 
 
-# In[106]:
+# In[22]:
 
 #These variables don't need checkpointing. 
 
 signedDistanceVariable = swarm.add_variable( dataType="double", count=1 )
-directorVector   = swarm.add_variable( dataType="double", count=2)
+directorVector   = swarm.add_variable( dataType="double", count=3)
 
 directorVector.data[:,:] = 0.0
 signedDistanceVariable.data[:] = 0.0
 
 
 
-# In[107]:
+# In[23]:
 
 #mesh.maxCoord
 
 
 # ## Initial Conditions
 
-# In[108]:
+# In[24]:
 
 proxyageFn = fn.branching.conditional([(yFn < ndp.subZoneLoc, ndp.slabMaxAge*fn.math.abs(yFn)), #idea is to make this arbitrarily complex
                                   (True, ndp.opMaxAge)])
@@ -593,7 +595,7 @@ thicknessAtTrench = 2.3*math.sqrt(1.*ndp.slabMaxAge)
 # 
 # zs = 1.- (ys - ndp.subZoneLoc)*dydx
 
-# In[109]:
+# In[25]:
 
 def slab_top(trench, normal, gradientFn, ds, maxDepth, mesh):
     """
@@ -669,7 +671,7 @@ def slab_top(trench, normal, gradientFn, ds, maxDepth, mesh):
     
 
 
-# In[110]:
+# In[26]:
 
 def polyGradientFn(S):
     if S == 0.:
@@ -678,7 +680,7 @@ def polyGradientFn(S):
         return -1*(S/ndp.radiusOfCurv)**2
 
 
-# In[111]:
+# In[27]:
 
 ds = 5e3/sf.lengthScale
 normal = [0.,1., 0.]
@@ -691,24 +693,24 @@ trenchzs = np.ones(trenchxs.shape)
 trench = np.column_stack((trenchxs, trenchys,trenchzs))
 
 
-# In[112]:
+# In[28]:
 
 #trench
 
 
-# In[113]:
+# In[29]:
 
 slabdata = slab_top(trench, normal, polyGradientFn, ds, ndp.maxDepth, mesh)
 
 
-# In[114]:
+# In[30]:
 
 slabxs = slabdata[:,:,0].flatten()
 slabys = slabdata[:,:,1].flatten()
 slabzs = slabdata[:,:,2].flatten()
 
 
-# In[115]:
+# In[31]:
 
 #create the makerSurface
 
@@ -716,7 +718,7 @@ slabTop = markerSurface3D(mesh, velocityField, slabxs, slabys ,slabzs , thicknes
 
 
 
-# In[116]:
+# In[32]:
 
 #Assign the signed distance for the slab
 #in this case we only want the portion where the signed distance is positive
@@ -738,7 +740,7 @@ signedDistanceVariable.data[np.logical_and(sd>0, sd<=slabTop.thickness)] = sd[np
 
 
 
-# In[117]:
+# In[33]:
 
 #slabCirc = inCircleFnGenerator((ndp.subZoneLoc, 1.0), ndp.maxDepth)
 
@@ -780,25 +782,35 @@ if not cp.restart:
 
 
 
-# In[118]:
+# In[34]:
 
 #proxyTempVariable.data.max()
 
 
-# In[119]:
+# In[35]:
 
 print('test Point')
 
 
+# In[ ]:
+
+
+
+
+# In[ ]:
+
+
+
+
 # ## Mask variable for viz
 
-# In[120]:
+# In[40]:
 
 bBox = bbox(mesh)
 bBox
 
 
-# In[121]:
+# In[41]:
 
 vizVariable      = swarm.add_variable( dataType="int", count=1 )
 
@@ -809,12 +821,12 @@ vizConds = fn.branching.conditional([(proxyTempVariable < 0.9*1., 1),
 vizVariable.data[:] = vizConds.evaluate(swarm)
 
 
-# In[122]:
+# In[42]:
 
 #fn_mask=vizVariable
 
 
-# In[128]:
+# In[43]:
 
 swarmfig = glucifer.Figure(figsize=(800,400), boundingBox=bBox)
 swarmfig.append( glucifer.objects.Points(swarm, proxyTempVariable, fn_mask=vizVariable) )
@@ -839,7 +851,7 @@ swarmfig.append( glucifer.objects.Points(swarm, proxyTempVariable, fn_mask=vizVa
 
 # ## Fault / interface
 
-# In[129]:
+# In[44]:
 
 def copy_markerSurface3D(ml, thickness=False, ID=False):
     
@@ -859,7 +871,7 @@ def copy_markerSurface3D(ml, thickness=False, ID=False):
     return new_line
 
 
-# In[130]:
+# In[45]:
 
 #Build fault
 fault = markerSurface3D(mesh, velocityField, slabxs, slabys ,slabzs, ndp.faultThickness, 1.)
@@ -872,7 +884,7 @@ fault.rebuild()
 fault.swarm.update_particle_owners()
 
 
-# In[131]:
+# In[46]:
 
 #inform the mesh of the fault
 
@@ -897,7 +909,7 @@ if directorVector.data.shape[0]:
 
 
 
-# In[132]:
+# In[47]:
 
 #Copy the fault and jitter, this is the swarm we'll capture inteface details on 
 
@@ -908,7 +920,7 @@ with metricSwarm.swarm.deform_swarm():
     metricSwarm.swarm.particleCoordinates.data[...] -= metricSwarm.director.data[...]*ds
 
 
-# In[133]:
+# In[48]:
 
 swarmfig = glucifer.Figure(figsize=(800,400), boundingBox=bBox)
 swarmfig.append( glucifer.objects.Points(swarm, proxyTempVariable, fn_mask=vizVariable) )
@@ -920,7 +932,7 @@ swarmfig.append( glucifer.objects.Points(slabTop.swarm) )
 #swarmfig.save_database('test.gldb')
 
 
-# In[134]:
+# In[49]:
 
 #glucifer.objects.
 
@@ -929,12 +941,12 @@ swarmfig.append( glucifer.objects.Points(slabTop.swarm) )
 # 
 # This bit needs work
 
-# In[135]:
+# In[50]:
 
 mesh.minCoord[1]
 
 
-# In[136]:
+# In[51]:
 
 def swarmToTemp():
 
@@ -964,23 +976,18 @@ def swarmToTemp():
     temperatureField.data[tWalls.data] = 0.
 
 
-# In[137]:
+# In[52]:
 
 #map proxy temp (swarm var) to mesh variable
 swarmToTemp()
 
 
-# In[145]:
-
-get_ipython().magic(u'pinfo glucifer.objects.CrossSection')
-
-
 # In[154]:
 
-fig= glucifer.Figure(quality=3, boundingBox=bBox)
+#fig= glucifer.Figure(quality=3, boundingBox=bBox)
 
 #fig.append( glucifer.objects.Mesh(mesh ))
-fig.append( glucifer.objects.Surface(mesh, temperatureField, sides="ZY"))
+#fig.append( glucifer.objects.Surface(mesh, temperatureField, sides="ZY"))
 
 #fig.append( glucifer.objects.CrossSection(mesh, depthFn, x = 0.1))
 
@@ -1465,6 +1472,7 @@ if md.thermal:
 
 fullpath = os.path.join(outputPath + "gldbs/")
 store1 = glucifer.Store(fullpath + 'subduction1.gldb')
+store2 = glucifer.Store(fullpath + 'subduction2.gldb')
 
 
 fig1 = glucifer.Figure(store1, boundingBox=bBox)
@@ -1474,6 +1482,11 @@ else:
     fig1.append( glucifer.objects.Points(swarm, proxyTempVariable, pointSize=2, fn_mask=vizVariable))
 fig1.append( glucifer.objects.Points(swarm, materialVariable, pointSize=2, fn_mask=vizVariable))
 fig1.append( glucifer.objects.VectorArrows(mesh, velocityField,  scaling=0.0005))
+
+fig2= glucifer.Figure(store2, quality=3)
+fig2.append(glucifer.objects.IsoSurface(mesh,-1.*temperatureField, fn_colour=temperatureField, isovalues = [-0.8]))
+fig2.append(glucifer.objects.IsoSurface(mesh,-1.*temperatureField, fn_colour=strainRate_2ndInvariant, isovalues = [-0.8]))
+
 
 
 # In[ ]:
@@ -1537,6 +1550,9 @@ def viz_update():
     store1.step = step
     fig1.save( fullpath + "Temp" + str(step).zfill(4))
     
+    store2.step = step
+    fig2.save( fullpath + "Temp" + str(step).zfill(4))
+    
 
 
 # In[ ]:
@@ -1568,7 +1584,7 @@ def swarm_update():
 
 time = cp.time()  # Initial time
 step = cp.step()   # Initial timestep
-maxSteps = 100      # Maximum timesteps (201 is recommended)
+maxSteps = 1000      # Maximum timesteps (201 is recommended)
 steps_output = 5   # output every 10 timesteps
 metrics_output = 5
 files_output = 10
