@@ -162,7 +162,7 @@ dp.lowerMantleVolume=1.5e-6
 #Rheology - cutoff values
 dp.viscosityMin=dp.refViscosity*5e-2
 dp.viscosityMax=dp.refViscosity*1e3                 #viscosity max in the mantle material
-dp.viscosityMinCrust=1e20               #viscosity min in the weak-crust material
+dp.viscosityMinCrust=dp.refViscosity*5e-2               #viscosity min in the weak-crust material
 dp.viscosityMaxCrust=1e20               #viscosity max in the weak-crust material
 dp.yieldStressMax=300*1e6              #
 #Intrinsic Lengths
@@ -209,8 +209,8 @@ md.swarmInitialFac = 0.6                 #initial swarm layout will be int(md.pp
 md.compBuoyancy = False
 md.uniformAge = True
 md.nltol = 5.0e-2
-md.maxSteps = 10
-md.checkpointEvery = 5
+md.maxSteps = 1000
+md.checkpointEvery = 20
 
 
 
